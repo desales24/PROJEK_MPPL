@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
 use App\Models\Payment;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 /* NOTE: Do Not Remove
 / Livewire asset handling if using sub folder in domain
@@ -22,6 +23,7 @@ Route::get('/', function () {
 });
 
 Route::get('/struk/{payment}', function (Payment $payment) {
+    $pdf = Pdf::loadView('filament.custom.struk', compact('payment'));
     return view('filament.custom.struk', compact('payment'));
 })->name('filament.struk');
 
