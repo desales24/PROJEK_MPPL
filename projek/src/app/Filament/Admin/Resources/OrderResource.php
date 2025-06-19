@@ -11,12 +11,14 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Forms\Components\Repeater;
-use Illuminate\Database\Eloquent\Model;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\TextInput;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ImageColumn;
 
 class OrderResource extends Resource
 {
     protected static ?string $model = Order::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
     public static function form(Form $form): Form
@@ -36,6 +38,14 @@ class OrderResource extends Resource
                 ->default('pending')
                 ->required(),
 
+            FileUpload::make('bukti_pembayaran')
+                ->label('Bukti Pembayaran')
+                ->disk('public')
+                ->directory('bukti-pembayaran')
+                ->nullable()
+                ->image()
+                ->acceptedFileTypes(['image/jpeg', 'image/png']),
+
             Repeater::make('orderItems')
                 ->label('Daftar Menu')
                 ->relationship()
@@ -52,7 +62,7 @@ class OrderResource extends Resource
                             }
                         }),
 
-                    Forms\Components\TextInput::make('quantity')
+                    TextInput::make('quantity')
                         ->numeric()
                         ->default(1)
                         ->reactive()
@@ -64,7 +74,7 @@ class OrderResource extends Resource
                             }
                         }),
 
-                    Forms\Components\TextInput::make('subtotal')
+                    TextInput::make('subtotal')
                         ->numeric()
                         ->disabled()
                         ->dehydrated()
@@ -74,7 +84,7 @@ class OrderResource extends Resource
                 ->minItems(1)
                 ->columns(3),
 
-            Forms\Components\TextInput::make('total')
+            TextInput::make('total')
                 ->label('Total')
                 ->numeric()
                 ->disabled()
@@ -83,7 +93,7 @@ class OrderResource extends Resource
                     if ($record) {
                         $set('total', $record->orderItems->sum('subtotal'));
                     }
-                })
+                }),
         ]);
     }
 
@@ -91,14 +101,50 @@ class OrderResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('customer.name')->label('Pelanggan'),
-                Tables\Columns\TextColumn::make('status'),
-                Tables\Columns\TextColumn::make('total')->money('IDR', true),
-                Tables\Columns\TextColumn::make('created_at')->dateTime(),
+                TextColumn::make('customer.name')->label('Pelanggan'),
+
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->sortable()
+                    ->action(function (Order $record) {
+                        if ($record->status === 'pending') {
+                            $record->update(['status' => 'paid']);
+                        }
+                    })
+                    ->color(fn (string $state) => match ($state) {
+                        'pending' => 'danger',
+                        'paid' => 'success',
+                        'cancelled' => 'gray',
+                        default => null,
+                    })
+                    ->extraAttributes(fn (Order $record) => [
+                        'style' => $record->status === 'pending'
+                            ? 'cursor: pointer; text-decoration: underline;'
+                            : '',
+                        'title' => $record->status === 'pending'
+                            ? 'Klik untuk ubah menjadi Paid'
+                            : '',
+                    ]),
+
+                ImageColumn::make('bukti_pembayaran')
+                    ->label('Bukti Pembayaran')
+                    ->disk('public')
+                    ->height(60)
+                    ->circular(),
+
+                TextColumn::make('total')
+                    ->label('Total')
+                    ->money('IDR', true)
+                    ->sortable(),
+
+                TextColumn::make('created_at')
+                    ->label('Dibuat')
+                    ->dateTime()
+                    ->sortable(),
             ])
-            ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\DeleteBulkAction::make(),
@@ -113,9 +159,9 @@ class OrderResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListOrders::route('/'),
+            'index'  => Pages\ListOrders::route('/'),
             'create' => Pages\CreateOrder::route('/create'),
-            'edit' => Pages\EditOrder::route('/{record}/edit'),
+            'edit'   => Pages\EditOrder::route('/{record}/edit'),
         ];
     }
 }

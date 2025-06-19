@@ -16,6 +16,7 @@ return new class extends Migration
         $table->foreignId('customer_id')->constrained()->onDelete('cascade');
         $table->timestamp('order_date')->useCurrent();
         $table->decimal('total', 10, 2);
+        $table->string('bukti_pembayaran')->nullable();
         $table->enum('status', ['pending', 'paid', 'cancelled'])->default('pending');
         $table->timestamps();
     });

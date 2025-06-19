@@ -17,6 +17,7 @@ class Order extends Model
         'order_date',
         'total',
         'status',
+        'bukti_pembayaran',
     ];
 
     protected $casts = [
