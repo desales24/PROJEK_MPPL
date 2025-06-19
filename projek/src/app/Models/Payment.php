@@ -28,9 +28,17 @@ class Payment extends Model
 
     protected static function booted()
     {
+        // Saat membuat Payment baru
         static::creating(function ($payment) {
-            if ($payment->order) {
-                $payment->amount = $payment->order->total;
+            if ($payment->order_id && !$payment->amount) {
+                $payment->amount = Order::find($payment->order_id)?->total;
+            }
+        });
+
+        // Saat mengedit dan mengganti order_id
+        static::updating(function ($payment) {
+            if ($payment->isDirty('order_id')) {
+                $payment->amount = Order::find($payment->order_id)?->total;
             }
         });
     }

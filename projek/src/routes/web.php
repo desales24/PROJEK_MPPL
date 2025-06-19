@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Livewire\Livewire;
+use App\Models\Payment;
 
 /* NOTE: Do Not Remove
 / Livewire asset handling if using sub folder in domain
@@ -19,3 +20,8 @@ Livewire::setScriptRoute(function ($handle) {
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/struk/{payment}', function (Payment $payment) {
+    return view('filament.custom.struk', compact('payment'));
+})->name('filament.struk');
+

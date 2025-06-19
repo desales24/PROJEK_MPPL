@@ -10,6 +10,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Actions\Action;
 
 class PaymentResource extends Resource
 {
@@ -58,7 +59,12 @@ class PaymentResource extends Resource
                 ->numeric()
                 ->disabled()
                 ->dehydrated()
-                ->required(),
+                ->required()
+                ->afterStateHydrated(function ($state, callable $set, $record) {
+                    if ($record && $record->order) {
+                        $set('amount', $record->order->total);
+                    }
+                }),
 
             Forms\Components\DateTimePicker::make('paid_at')
                 ->label('Waktu Pembayaran')
@@ -103,6 +109,11 @@ class PaymentResource extends Resource
             ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Action::make('Cetak Struk')
+                    ->icon('heroicon-o-printer')
+                    ->color('success')
+                    ->url(fn (Payment $record) => route('filament.struk', $record))
+                    ->openUrlInNewTab()
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

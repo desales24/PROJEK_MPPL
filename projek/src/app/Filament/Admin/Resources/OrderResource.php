@@ -2,98 +2,74 @@
 
 namespace App\Filament\Admin\Resources;
 
-use App\Filament\Admin\Resources\OrderResource\Pages;
+use App\Filament\Admin\Resources\PaymentResource\Pages;
 use App\Models\Order;
-use App\Models\Menu;
+use App\Models\Payment;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\TextInput;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Actions\Action;
 
-class OrderResource extends Resource
+class PaymentResource extends Resource
 {
-    protected static ?string $model = Order::class;
-    protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+    protected static ?string $model = Payment::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Select::make('customer_id')
-                ->relationship('customer', 'name')
-                ->required()
-                ->label('Pelanggan'),
+            Forms\Components\Select::make('order_id')
+                ->label('Pesanan')
+                ->options(function () {
+                    $usedOrderIds = Payment::pluck('order_id')->toArray();
 
-            Forms\Components\Select::make('status')
+                    return Order::with('customer')
+                        ->whereNotIn('id', $usedOrderIds)
+                        ->get()
+                        ->mapWithKeys(function ($order) {
+                            return [
+                                $order->id => 'Order #' . $order->id . ' - ' . $order->customer->name,
+                            ];
+                        });
+                })
+                ->searchable()
+                ->reactive()
+                ->required()
+                ->afterStateUpdated(function ($state, callable $set) {
+                    $order = Order::find($state);
+                    if ($order) {
+                        $set('amount', $order->total);
+                    }
+                }),
+
+            Forms\Components\Select::make('method')
+                ->label('Metode Pembayaran')
                 ->options([
-                    'pending' => 'Pending',
-                    'paid' => 'Paid',
-                    'cancelled' => 'Cancelled',
+                    'DANA' => 'DANA',
+                    'GoPay' => 'GoPay',
+                    'QRIS' => 'QRIS',
                 ])
-                ->default('pending')
                 ->required(),
 
-            FileUpload::make('bukti_pembayaran')
-                ->label('Bukti Pembayaran')
-                ->disk('public')
-                ->directory('bukti-pembayaran')
-                ->nullable()
-                ->image()
-                ->acceptedFileTypes(['image/jpeg', 'image/png']),
-
-            Repeater::make('orderItems')
-                ->label('Daftar Menu')
-                ->relationship()
-                ->schema([
-                    Forms\Components\Select::make('menu_id')
-                        ->label('Menu')
-                        ->relationship('menu', 'name')
-                        ->required()
-                        ->reactive()
-                        ->afterStateUpdated(function ($state, callable $set) {
-                            $menu = Menu::find($state);
-                            if ($menu) {
-                                $set('subtotal', $menu->price);
-                            }
-                        }),
-
-                    TextInput::make('quantity')
-                        ->numeric()
-                        ->default(1)
-                        ->reactive()
-                        ->required()
-                        ->afterStateUpdated(function ($state, callable $get, callable $set) {
-                            $menu = Menu::find($get('menu_id'));
-                            if ($menu) {
-                                $set('subtotal', $state * $menu->price);
-                            }
-                        }),
-
-                    TextInput::make('subtotal')
-                        ->numeric()
-                        ->disabled()
-                        ->dehydrated()
-                        ->label('Subtotal'),
-                ])
-                ->defaultItems(1)
-                ->minItems(1)
-                ->columns(3),
-
-            TextInput::make('total')
-                ->label('Total')
+            Forms\Components\TextInput::make('amount')
+                ->label('Jumlah Bayar')
                 ->numeric()
                 ->disabled()
                 ->dehydrated()
-                ->afterStateHydrated(function (callable $set, $record) {
-                    if ($record) {
-                        $set('total', $record->orderItems->sum('subtotal'));
+                ->required()
+                ->afterStateHydrated(function ($state, callable $set, $record) {
+                    if ($record && $record->order) {
+                        $set('amount', $record->order->total);
                     }
                 }),
+
+            Forms\Components\DateTimePicker::make('paid_at')
+                ->label('Waktu Pembayaran')
+                ->default(now())
+                ->required(),
         ]);
     }
 
@@ -101,53 +77,48 @@ class OrderResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('customer.name')->label('Pelanggan'),
+                Tables\Columns\TextColumn::make('order.id')
+                    ->label('ID Pesanan')
+                    ->sortable(),
 
-                TextColumn::make('status')
-                    ->label('Status')
-                    ->sortable()
-                    ->action(function (Order $record) {
-                        if ($record->status === 'pending') {
-                            $record->update(['status' => 'paid']);
-                        }
-                    })
-                    ->color(fn (string $state) => match ($state) {
-                        'pending' => 'danger',
-                        'paid' => 'success',
-                        'cancelled' => 'gray',
-                        default => null,
-                    })
-                    ->extraAttributes(fn (Order $record) => [
-                        'style' => $record->status === 'pending'
-                            ? 'cursor: pointer; text-decoration: underline;'
-                            : '',
-                        'title' => $record->status === 'pending'
-                            ? 'Klik untuk ubah menjadi Paid'
-                            : '',
-                    ]),
+                Tables\Columns\TextColumn::make('method')
+                    ->label('Metode'),
 
-                ImageColumn::make('bukti_pembayaran')
-                    ->label('Bukti Pembayaran')
-                    ->disk('public')
-                    ->height(60)
-                    ->circular(),
-
-                TextColumn::make('total')
-                    ->label('Total')
+                Tables\Columns\TextColumn::make('amount')
+                    ->label('Jumlah')
                     ->money('IDR', true)
                     ->sortable(),
 
-                TextColumn::make('created_at')
-                    ->label('Dibuat')
+                Tables\Columns\TextColumn::make('paid_at')
+                    ->label('Dibayar Pada')
                     ->dateTime()
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Dibuat')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Diperbarui')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
+            ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                Action::make('Cetak Struk')
+                    ->icon('heroicon-o-printer')
+                    ->color('success')
+                    ->url(fn (Payment $record) => route('filament.struk', $record))
+                    ->openUrlInNewTab()
             ])
             ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
 
@@ -159,9 +130,9 @@ class OrderResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index'  => Pages\ListOrders::route('/'),
-            'create' => Pages\CreateOrder::route('/create'),
-            'edit'   => Pages\EditOrder::route('/{record}/edit'),
+            'index' => Pages\ListPayments::route('/'),
+            'create' => Pages\CreatePayment::route('/create'),
+            'edit' => Pages\EditPayment::route('/{record}/edit'),
         ];
     }
 }
