@@ -5,6 +5,7 @@ use Livewire\Livewire;
 use App\Models\Payment;
 use Barryvdh\DomPDF\Facade\Pdf;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use App\Livewire\ShowHomePage;
 
 /* NOTE: Do Not Remove
 / Livewire asset handling if using sub folder in domain
@@ -19,9 +20,9 @@ Livewire::setScriptRoute(function ($handle) {
 /*
 / END
 */
-Route::get('/', function () {
-    return view('welcome');
-});
+// Route::get('/', function () {
+//     return view('welcome');
+// });
 
 Route::get('/struk/{payment}', function (Payment $payment) {
     $qrData = match(strtolower($payment->method)) {
@@ -56,3 +57,5 @@ Route::get('/struk/download/{payment}', function (Payment $payment) {
 
     return $pdf->download('struk-' . $payment->id . '.pdf');
 })->name('filament.struk.download');
+
+Route::get('/', ShowHomePage::class)->name('home');
