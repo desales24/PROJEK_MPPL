@@ -113,7 +113,13 @@ class PaymentResource extends Resource
                     ->icon('heroicon-o-printer')
                     ->color('success')
                     ->url(fn (Payment $record) => route('filament.struk', $record))
-                    ->openUrlInNewTab()
+                    ->openUrlInNewTab(),
+
+                Action::make('Download Struk')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('primary')
+                    ->url(fn (Payment $record) => route('filament.struk.download', $record))
+                    ->openUrlInNewTab(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

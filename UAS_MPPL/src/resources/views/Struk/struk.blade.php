@@ -78,16 +78,9 @@
 
         <p class="total">Total: Rp {{ number_format($payment->amount, 0, ',', '.') }}</p>
 
+        <!-- resources/views/Struk/struk-view.blade.php -->
         <div class="barcode">
             <p>Scan QR untuk membayar:</p>
-            @php
-                $qrData = match(strtolower($payment->method)) {
-                    'dana' => 'https://link.dana.id/merchant-qr',
-                    'gopay' => 'https://link.gopay.id/merchant-qr',
-                    'qris' => 'https://link.qris.id/merchant-qr',
-                    default => 'https://default.qr',
-                };
-            @endphp
             {!! QrCode::size(180)->generate($qrData) !!}
         </div>
     </div>

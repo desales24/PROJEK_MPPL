@@ -8,6 +8,9 @@ use Illuminate\Support\Carbon;
 
 class DailyIncomeChart extends ChartWidget
 {
+    protected int | string | array $columnSpan = '1';
+    // protected int | string | array $height = '300px';
+
     protected function getData(): array
     {
         $startDate = Carbon::now()->startOfDay();            // Hari ini

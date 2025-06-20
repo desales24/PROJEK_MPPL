@@ -8,6 +8,9 @@ use Illuminate\Support\Carbon;
 
 class DailyCustomerChart extends ChartWidget
 {
+    protected int | string | array $columnSpan = '1';
+    // protected int | string | array $height = '300px';
+
     protected static ?string $heading = 'Customer Baru (7 Hari ke Depan)';
 
     protected function getData(): array
