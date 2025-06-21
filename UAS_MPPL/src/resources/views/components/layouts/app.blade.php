@@ -10,21 +10,20 @@
       <!-- end nav -->
       <!-- header section end -->
 
+      {{$slot}}
+
       <!-- banner section start --> 
       <!-- home -->
-      @livewire('show-home-page')
       <!-- end home -->
       <!-- banner section end -->
 
       <!-- about section start -->
       <!-- about -->
-      @livewire('about')
       <!-- end about -->
       <!-- about section end -->
 
       <!-- gallery section start -->
       <!-- menu -->
-      @livewire('menu')
       <!-- end menu -->
       <!-- gallery section end -->
 
