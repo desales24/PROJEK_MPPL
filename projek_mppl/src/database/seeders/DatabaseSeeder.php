@@ -24,7 +24,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             CustomerSeeder::class,
-            TableSeeder::class,
             MenuSeeder::class,
             OrderSeeder::class,
             OrderItemSeeder::class,

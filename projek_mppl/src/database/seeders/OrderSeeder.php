@@ -11,14 +11,12 @@ class OrderSeeder extends Seeder
     {
         Order::create([
             'customer_id' => 1,
-            'table_id' => 1,
-            'status' => 'pending',
+            'status' => 'preparing',
         ]);
 
         Order::create([
             'customer_id' => 2,
-            'table_id' => 2,
-            'status' => 'served',
+            'status' => 'preparing',
         ]);
     }
 }

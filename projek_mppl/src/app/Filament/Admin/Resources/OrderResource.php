@@ -5,12 +5,12 @@ namespace App\Filament\Admin\Resources;
 use App\Filament\Admin\Resources\OrderResource\Pages;
 use App\Models\Order;
 use App\Models\Menu;
-use App\Models\Table;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table as TableComponent;
+use Illuminate\Database\Eloquent\Builder;
 
 class OrderResource extends Resource
 {
@@ -21,10 +21,15 @@ class OrderResource extends Resource
     protected static ?string $label = 'Order';
     protected static ?string $pluralLabel = 'Daftar Order';
 
+    public static function getEloquentQuery(): Builder
+    {
+        // Eager load relasi agar tidak terjadi N+1 query
+        return parent::getEloquentQuery()->with(['orderItems.menu', 'customer']);
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema([
-            // PILIH PELANGGAN (dengan opsi tambah baru)
             Forms\Components\Select::make('customer_id')
                 ->label('Pelanggan')
                 ->relationship('customer', 'name')
@@ -36,24 +41,6 @@ class OrderResource extends Resource
                     Forms\Components\TextInput::make('email')->label('Email')->email(),
                 ]),
 
-            // PILIH MEJA (langsung muncul semua nomor meja)
-            Forms\Components\Select::make('table_id')
-                ->label('Meja')
-                ->options(fn () => \App\Models\Table::orderBy('table_number')->pluck('table_number', 'id'))
-                ->required(),
-
-            // STATUS ORDER
-            Forms\Components\Select::make('status')
-                ->label('Status')
-                ->options([
-                    'pending' => 'Pending',
-                    'served' => 'Disajikan',
-                    'completed' => 'Selesai',
-                ])
-                ->default('pending')
-                ->required(),
-
-            // REPEATER UNTUK ITEM PESANAN
             Forms\Components\Repeater::make('orderItems')
                 ->label('Daftar Pesanan')
                 ->relationship()
@@ -72,24 +59,16 @@ class OrderResource extends Resource
                 ->columns(2)
                 ->createItemButtonLabel('Tambah Item'),
 
-            // TOTAL HARGA OTOMATIS
             Forms\Components\Placeholder::make('total')
                 ->label('Total Harga')
                 ->content(function ($state, $get) {
                     $items = $get('orderItems') ?? [];
                     $total = 0;
-
                     foreach ($items as $item) {
-                        if (!isset($item['menu_id'], $item['quantity'])) {
-                            continue;
-                        }
-
+                        if (!isset($item['menu_id'], $item['quantity'])) continue;
                         $menu = Menu::find($item['menu_id']);
-                        if ($menu) {
-                            $total += $menu->price * intval($item['quantity']);
-                        }
+                        if ($menu) $total += $menu->price * intval($item['quantity']);
                     }
-
                     return 'Rp ' . number_format($total, 0, ',', '.');
                 })
                 ->disabled()
@@ -104,17 +83,15 @@ class OrderResource extends Resource
                 ->label('Pelanggan')
                 ->searchable(),
 
-            Tables\Columns\TextColumn::make('table.table_number')
-                ->label('Meja'),
-
-            Tables\Columns\TextColumn::make('status')
-                ->label('Status')
-                ->badge()
-                ->colors([
-                    'primary' => 'pending',
-                    'warning' => 'served',
-                    'success' => 'completed',
-                ]),
+            Tables\Columns\TextColumn::make('total_harga')
+                ->label('Total Harga')
+                ->getStateUsing(function ($record) {
+                    $total = 0;
+                    foreach ($record->orderItems as $item) {
+                        $total += $item->quantity * ($item->menu->price ?? 0);
+                    }
+                    return 'Rp ' . number_format($total, 0, ',', '.');
+                }),
 
             Tables\Columns\TextColumn::make('created_at')
                 ->label('Dibuat')
@@ -135,7 +112,7 @@ class OrderResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // bisa ditambahkan relation manager jika ingin tampilkan daftar item
+            // Bisa ditambahkan RelationManagers di sini jika diperlukan
         ];
     }
 

@@ -9,8 +9,7 @@ return new class extends Migration {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->constrained()->onDelete('cascade');
-            $table->foreignId('table_id')->constrained()->onDelete('cascade');
-            $table->enum('status', ['pending', 'preparing', 'served', 'paid'])->default('pending');
+            $table->enum('status', ['preparing', 'served', 'finished'])->default('preparing');
             $table->timestamp('order_time')->useCurrent();
             $table->timestamps();
         });

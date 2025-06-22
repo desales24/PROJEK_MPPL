@@ -14,6 +14,7 @@ return new class extends Migration {
             $table->integer('amount');
             $table->enum('status', ['paid', 'pending', 'failed'])->default('pending');
             $table->dateTime('paid_at')->nullable();
+            $table->string('card_number')->nullable(); // Optional field for card payments
             $table->timestamps();
         });
     }

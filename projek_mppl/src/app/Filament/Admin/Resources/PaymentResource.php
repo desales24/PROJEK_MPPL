@@ -14,7 +14,6 @@ use Filament\Tables\Table;
 class PaymentResource extends Resource
 {
     protected static ?string $model = Payment::class;
-
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
     protected static ?string $navigationGroup = 'Transaksi';
     protected static ?string $label = 'Pembayaran';
@@ -26,17 +25,15 @@ class PaymentResource extends Resource
             Forms\Components\Select::make('order_id')
                 ->label('Order (Belum Dibayar)')
                 ->options(function () {
-                    return \App\Models\Order::doesntHave('payment')
+                    return Order::doesntHave('payment')
                         ->with('customer')
                         ->get()
-                        ->mapWithKeys(function ($order) {
-                            return [$order->id => 'Order #' . $order->id . ' - ' . $order->customer->name];
-                        });
+                        ->mapWithKeys(fn ($order) => [$order->id => 'Order #' . $order->id . ' - ' . $order->customer->name]);
                 })
                 ->searchable()
                 ->reactive()
                 ->afterStateUpdated(function ($state, callable $set) {
-                    $order = \App\Models\Order::with('orderItems.menu')->find($state);
+                    $order = Order::with('orderItems.menu')->find($state);
                     if ($order) {
                         $total = 0;
                         foreach ($order->orderItems as $item) {
@@ -51,11 +48,18 @@ class PaymentResource extends Resource
                 ->label('Metode Pembayaran')
                 ->options([
                     'cash' => 'Tunai',
-                    'qr' => 'QR Code',
+                    'qr' => 'QRIS',
                     'debit' => 'Kartu Debit',
                     'credit' => 'Kartu Kredit',
                 ])
-                ->required(),
+                ->required()
+                ->reactive(),
+
+            Forms\Components\TextInput::make('card_number')
+                ->label('Nomor Kartu')
+                ->visible(fn ($get) => in_array($get('method'), ['debit', 'credit']))
+                ->required(fn ($get) => in_array($get('method'), ['debit', 'credit']))
+                ->maxLength(20),
 
             Forms\Components\TextInput::make('amount')
                 ->label('Jumlah Bayar')
@@ -118,6 +122,12 @@ class PaymentResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\Action::make('cetakStruk')
+                    ->label('Cetak Struk')
+                    ->icon('heroicon-o-printer')
+                    ->color('gray')
+                    ->url(fn ($record) => route('cetak.struk', ['payment' => $record->id]))
+                    ->openUrlInNewTab(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
