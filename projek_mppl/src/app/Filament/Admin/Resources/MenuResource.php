@@ -13,29 +13,26 @@ use Filament\Tables\Table;
 class MenuResource extends Resource
 {
     protected static ?string $model = Menu::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationGroup = 'Master Data';
-    protected static ?string $label = 'Menu';
-    protected static ?string $pluralLabel = 'Daftar Menu';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
-                    ->label('Nama Menu')
                     ->required()
                     ->maxLength(255),
 
                 Forms\Components\Textarea::make('description')
                     ->label('Deskripsi')
-                    ->columnSpanFull(),
+                    ->rows(3)
+                    ->nullable(),
 
                 Forms\Components\TextInput::make('price')
                     ->label('Harga')
-                    ->required()
                     ->numeric()
-                    ->prefix('Rp'),
+                    ->required(),
 
                 Forms\Components\Select::make('category')
                     ->label('Kategori')
@@ -48,7 +45,14 @@ class MenuResource extends Resource
 
                 Forms\Components\Toggle::make('available')
                     ->label('Tersedia')
-                    ->required(),
+                    ->default(true),
+
+                Forms\Components\FileUpload::make('image')
+                    ->label('Gambar')
+                    ->image()
+                    ->directory('menus')
+                    ->nullable()
+                    ->imagePreviewHeight('150'),
             ]);
     }
 
@@ -56,18 +60,30 @@ class MenuResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('image')
+                    ->label('Gambar')
+                    ->circular()
+                    ->height(50)
+                    ->width(50),
+
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('price')
                     ->label('Harga')
-                    ->money('IDR')
+                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format($state, 0, ',', '.'))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('category')
+                Tables\Columns\BadgeColumn::make('category')
                     ->label('Kategori')
-                    ->formatStateUsing(fn ($state) => match($state) {
+                    ->colors([
+                        'primary' => 'food',
+                        'success' => 'drink',
+                        'warning' => 'dessert',
+                    ])
+                    ->formatStateUsing(fn (string $state) => match ($state) {
                         'food' => 'Makanan',
                         'drink' => 'Minuman',
                         'dessert' => 'Dessert',
@@ -80,17 +96,12 @@ class MenuResource extends Resource
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->label('Diubah')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->dateTime('d M Y H:i')
+                    ->sortable(),
             ])
-            ->filters([])
+            ->filters([
+                //
+            ])
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
@@ -103,9 +114,7 @@ class MenuResource extends Resource
 
     public static function getRelations(): array
     {
-        return [
-            // Tambahkan relasi ke order_items jika dibutuhkan
-        ];
+        return [];
     }
 
     public static function getPages(): array

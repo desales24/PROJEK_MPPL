@@ -23,7 +23,6 @@ class OrderResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        // Eager load relasi agar tidak terjadi N+1 query
         return parent::getEloquentQuery()->with(['orderItems.menu', 'customer']);
     }
 
@@ -48,7 +47,17 @@ class OrderResource extends Resource
                     Forms\Components\Select::make('menu_id')
                         ->label('Menu')
                         ->relationship('menu', 'name')
-                        ->required(),
+                        ->required()
+                        ->reactive(),
+
+                    Forms\Components\Placeholder::make('menu_price')
+                        ->label('Harga Menu')
+                        ->content(function ($get) {
+                            $menuId = $get('menu_id');
+                            if (!$menuId) return '-';
+                            $menu = Menu::find($menuId);
+                            return $menu ? 'Rp ' . number_format($menu->price, 0, ',', '.') : '-';
+                        }),
 
                     Forms\Components\TextInput::make('quantity')
                         ->label('Jumlah')
@@ -56,7 +65,7 @@ class OrderResource extends Resource
                         ->minValue(1)
                         ->required(),
                 ])
-                ->columns(2)
+                ->columns(3)
                 ->createItemButtonLabel('Tambah Item'),
 
             Forms\Components\Placeholder::make('total')
@@ -112,7 +121,7 @@ class OrderResource extends Resource
     public static function getRelations(): array
     {
         return [
-            // Bisa ditambahkan RelationManagers di sini jika diperlukan
+            // Tambahkan RelationManager jika diperlukan
         ];
     }
 

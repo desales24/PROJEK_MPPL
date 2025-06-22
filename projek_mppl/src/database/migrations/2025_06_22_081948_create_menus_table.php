@@ -13,6 +13,7 @@ return new class extends Migration {
             $table->decimal('price', 10, 2);
             $table->enum('category', ['food', 'drink', 'dessert']);
             $table->boolean('available')->default(true);
+            $table->string('image')->nullable();
             $table->timestamps();
         });
     }

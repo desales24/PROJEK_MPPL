@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Menu extends Model
 {
-    protected $fillable = ['name', 'description', 'price', 'category', 'available'];
+    protected $fillable = ['name', 'description', 'price', 'category', 'available', 'image'];
 
     public function orderItems(): HasMany
     {

@@ -23,12 +23,17 @@ class PaymentResource extends Resource
     {
         return $form->schema([
             Forms\Components\Select::make('order_id')
-                ->label('Order (Belum Dibayar)')
+                ->label('Order (Belum / Gagal / Pending)')
                 ->options(function () {
-                    return Order::doesntHave('payment')
+                    return Order::whereDoesntHave('payment')
+                        ->orWhereHas('payment', function ($query) {
+                            $query->whereIn('status', ['pending', 'failed']);
+                        })
                         ->with('customer')
                         ->get()
-                        ->mapWithKeys(fn ($order) => [$order->id => 'Order #' . $order->id . ' - ' . $order->customer->name]);
+                        ->mapWithKeys(fn ($order) => [
+                            $order->id => 'Order #' . $order->id . ' - ' . $order->customer->name
+                        ]);
                 })
                 ->searchable()
                 ->reactive()
@@ -48,18 +53,20 @@ class PaymentResource extends Resource
                 ->label('Metode Pembayaran')
                 ->options([
                     'cash' => 'Tunai',
-                    'qr' => 'QRIS',
-                    'debit' => 'Kartu Debit',
-                    'credit' => 'Kartu Kredit',
+                    'qris' => 'QRIS',
+                    'debit' => 'Transfer Bank',
                 ])
+                ->default('debit')
                 ->required()
                 ->reactive(),
 
-            Forms\Components\TextInput::make('card_number')
-                ->label('Nomor Kartu')
-                ->visible(fn ($get) => in_array($get('method'), ['debit', 'credit']))
-                ->required(fn ($get) => in_array($get('method'), ['debit', 'credit']))
-                ->maxLength(20),
+            Forms\Components\FileUpload::make('proof_of_payment')
+                ->label('Bukti Pembayaran')
+                ->directory('bukti-pembayaran')
+                ->image()
+                ->imagePreviewHeight('150')
+                ->nullable()
+                ->disk('public'),
 
             Forms\Components\TextInput::make('amount')
                 ->label('Jumlah Bayar')
@@ -96,7 +103,7 @@ class PaymentResource extends Resource
 
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Jumlah')
-                    ->money('IDR'),
+                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format($state, 0, ',', '.')),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')
@@ -106,6 +113,7 @@ class PaymentResource extends Resource
                         'warning' => 'pending',
                         'danger' => 'failed',
                     ])
+                    ->tooltip(fn ($record) => $record->status !== 'paid' ? 'Klik untuk tandai lunas' : null)
                     ->action(function ($record) {
                         if ($record->status !== 'paid') {
                             $record->update([
@@ -113,20 +121,34 @@ class PaymentResource extends Resource
                                 'paid_at' => now(),
                             ]);
                         }
-                    })
-                    ->tooltip(fn ($record) => $record->status !== 'paid' ? 'Klik untuk tandai lunas' : null),
+                    }),
 
                 Tables\Columns\TextColumn::make('paid_at')
                     ->label('Tanggal Bayar')
                     ->dateTime('d M Y H:i'),
+
+                Tables\Columns\ImageColumn::make('proof_of_payment')
+                    ->label('Bukti')
+                    ->disk('public')
+                    ->circular()
+                    ->height(80)
+                    ->width(80),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+
                 Tables\Actions\Action::make('cetakStruk')
                     ->label('Cetak Struk')
                     ->icon('heroicon-o-printer')
                     ->color('gray')
                     ->url(fn ($record) => route('cetak.struk', ['payment' => $record->id]))
+                    ->openUrlInNewTab(),
+
+                Tables\Actions\Action::make('downloadStruk')
+                    ->label('Unduh PDF')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->url(fn ($record) => route('cetak.struk.download', ['payment' => $record->id]))
                     ->openUrlInNewTab(),
             ])
             ->bulkActions([

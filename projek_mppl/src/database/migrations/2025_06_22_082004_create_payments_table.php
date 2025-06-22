@@ -10,11 +10,11 @@ return new class extends Migration {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->enum('method', ['cash', 'qr', 'debit', 'credit']);
+            $table->enum('method', ['cash', 'qris', 'debit']);
             $table->integer('amount');
             $table->enum('status', ['paid', 'pending', 'failed'])->default('pending');
             $table->dateTime('paid_at')->nullable();
-            $table->string('card_number')->nullable(); // Optional field for card payments
+            $table->string('proof_of_payment')->nullable(); // Optional field for payment proof image
             $table->timestamps();
         });
     }

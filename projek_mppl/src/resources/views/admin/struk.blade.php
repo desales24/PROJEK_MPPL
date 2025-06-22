@@ -24,7 +24,7 @@
             text-align: center;
         }
         .line {
-            border-top: 1px dashed  #000; /* garis solid */
+            border-top: 1px solid #000;
             margin: 10px 0;
         }
         table {
@@ -45,10 +45,10 @@
             text-align: center;
             font-style: italic;
         }
-        img.qr {
+        .qr-image {
+            width: 150px;
             display: block;
             margin: 10px auto;
-            width: 150px;
         }
     </style>
 </head>
@@ -93,11 +93,18 @@
 
         <p><strong>Metode:</strong> {{ ucfirst($payment->method) }}</p>
 
-        @if(in_array($payment->method, ['debit', 'credit']))
-            <p><strong>No Kartu:</strong> {{ $payment->card_number ?? '•••• •••• •••• 1234' }}</p>
-        @elseif($payment->method === 'qr')
-            <p class="center"><strong>QRIS:</strong></p>
-            <img class="qr" src="{{ asset('images/qris-sample.png') }}" alt="QRIS Code">
+        @if($payment->method === 'debit')
+            <p><strong>Rekening Tujuan:</strong></p>
+            <p>1234567890 - BCA a.n. Warung Makan</p>
+        @elseif($payment->method === 'qris')
+            @php
+                $qrPath = public_path('images/qris-sample.png');
+                $qrBase64 = base64_encode(file_get_contents($qrPath));
+            @endphp
+            <div class="center">
+                <p><strong>QRIS:</strong></p>
+                <img src="data:image/png;base64,{{ $qrBase64 }}" alt="QRIS Code" class="qr-image" />
+            </div>
         @endif
 
         <div class="line"></div>
