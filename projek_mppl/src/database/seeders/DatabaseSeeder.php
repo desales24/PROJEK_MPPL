@@ -14,12 +14,21 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // User::factory(10)->create();
+        if(User::count()==0){
+            $user = \App\Models\User::factory()->create([
+                'name' => 'Admin',
+                'email' => 'admin@admin.com',
+            ]);
+            $user->assignRole('super_admin');
+        }
 
-        $user = \App\Models\User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@admin.com',
+        $this->call([
+            CustomerSeeder::class,
+            TableSeeder::class,
+            MenuSeeder::class,
+            OrderSeeder::class,
+            OrderItemSeeder::class,
+            PaymentSeeder::class,
         ]);
-
-        $user->assignRole('super_admin');
     }
 }

@@ -3,60 +3,31 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Order extends Model
 {
-    use HasFactory;
+    protected $fillable = ['customer_id', 'table_id', 'status', 'order_time'];
 
-    protected $fillable = [
-        'customer_id',
-        'table_id',
-        'order_date',
-        'status',
-        'proof_of_payment',
-    ];
-
-    protected $casts = [
-        'order_date' => 'datetime',
-        'total' => 'decimal:2',
-    ];
-
-    public function customer()
+    public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
     }
 
-    public function table()
+    public function table(): BelongsTo
     {
         return $this->belongsTo(Table::class);
     }
 
-    public function order_items()
+    public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    public function payment()
+    public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
-    }
-
-    protected static function booted()
-    {
-        static::saving(function ($order) {
-            $total = 0;
-
-            foreach ($order->order_items as $item) {
-                // ambil harga dari menu
-                $menu = Menu::find($item->menu_id);
-                $item->price = $menu->price ?? 0;
-                $item->save();
-
-                $total += $item->quantity * $item->price;
-            }
-
-            $order->total = $total;
-        });
     }
 }

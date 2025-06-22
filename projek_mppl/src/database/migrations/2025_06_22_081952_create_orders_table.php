@@ -4,30 +4,19 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
+return new class extends Migration {
+    public function up(): void {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->constrained()->onDelete('cascade');
-            $table->foreignId('table_id')->constrained('tables')->onDelete('cascade');
-            $table->dateTime('order_date')->useCurrent();
-            $table->enum('status', ['pending', 'processing', 'completed', 'cancelled'])->default('pending');
-            $table->decimal('total', 10, 2)->default(0);
-            $table->string('proof_of_payment')->nullable();
+            $table->foreignId('table_id')->constrained()->onDelete('cascade');
+            $table->enum('status', ['pending', 'preparing', 'served', 'paid'])->default('pending');
+            $table->timestamp('order_time')->useCurrent();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
+    public function down(): void {
         Schema::dropIfExists('orders');
     }
 };

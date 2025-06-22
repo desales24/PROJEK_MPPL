@@ -11,15 +11,14 @@ class Payment extends Model
 
     protected $fillable = [
         'order_id',
-        'payment_date',
-        'amount_paid',
-        'payment_method',
-        'proof_of_payment',
+        'method',
+        'amount',
+        'status',
+        'paid_at',
     ];
 
     protected $casts = [
-        'payment_date' => 'datetime',
-        'amount_paid' => 'decimal:2',
+        'paid_at' => 'datetime',
     ];
 
     public function order()
