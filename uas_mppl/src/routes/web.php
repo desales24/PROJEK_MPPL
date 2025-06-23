@@ -19,3 +19,9 @@ Livewire::setScriptRoute(function ($handle) {
 Route::get('/', function () {
     return view('welcome');
 });
+
+use App\Models\Payment;
+
+Route::get('/print/struk/{payment}', function (Payment $payment) {
+    return view('struk', ['payment' => $payment]);
+})->name('print.struk');
