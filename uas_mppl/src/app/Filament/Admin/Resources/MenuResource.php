@@ -9,51 +9,55 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class MenuResource extends Resource
 {
     protected static ?string $model = Menu::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationGroup = 'Master Data';
+    protected static ?string $navigationLabel = 'Menu';
+    protected static ?string $pluralLabel = 'Daftar Menu';
+    protected static ?string $modelLabel = 'Menu';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
+                    ->label('Nama Menu')
                     ->required()
                     ->maxLength(255),
 
                 Forms\Components\Textarea::make('description')
                     ->label('Deskripsi')
-                    ->rows(3)
-                    ->nullable(),
+                    ->columnSpanFull(),
 
                 Forms\Components\TextInput::make('price')
                     ->label('Harga')
+                    ->required()
                     ->numeric()
-                    ->required(),
+                    ->prefix('Rp'),
 
                 Forms\Components\Select::make('category')
                     ->label('Kategori')
-                    ->required()
                     ->options([
-                        'food' => 'Makanan',
-                        'drink' => 'Minuman',
-                        'dessert' => 'Dessert',
-                    ]),
+                        'makanan' => 'Makanan',
+                        'minuman' => 'Minuman',
+                        'camilan' => 'Camilan',
+                    ])
+                    ->required(),
 
                 Forms\Components\Toggle::make('available')
                     ->label('Tersedia')
-                    ->default(true),
+                    ->required(),
 
                 Forms\Components\FileUpload::make('image')
-                    ->label('Gambar')
+                    ->label('Foto Menu')
                     ->image()
                     ->directory('menus')
-                    ->nullable()
-                    ->imagePreviewHeight('150'),
+                    ->imageEditor()
+                    ->maxSize(2048),
             ]);
     }
 
@@ -62,34 +66,26 @@ class MenuResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\ImageColumn::make('image')
-                    ->label('Gambar')
-                    ->circular()
-                    ->height(50)
-                    ->width(50),
+                    ->label('Foto')
+                    ->circular(),
 
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(),
 
                 Tables\Columns\TextColumn::make('price')
                     ->label('Harga')
-                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format($state, 0, ',', '.'))
+                    ->money('IDR', true)
                     ->sortable(),
 
                 Tables\Columns\BadgeColumn::make('category')
                     ->label('Kategori')
                     ->colors([
-                        'primary' => 'food',
-                        'success' => 'drink',
-                        'warning' => 'dessert',
+                        'primary' => 'makanan',
+                        'info' => 'minuman',
+                        'warning' => 'camilan',
                     ])
-                    ->formatStateUsing(fn (string $state) => match ($state) {
-                        'food' => 'Makanan',
-                        'drink' => 'Minuman',
-                        'dessert' => 'Dessert',
-                        default => $state,
-                    }),
+                    ->sortable(),
 
                 Tables\Columns\IconColumn::make('available')
                     ->label('Tersedia')
@@ -97,11 +93,28 @@ class MenuResource extends Resource
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Dibuat')
-                    ->dateTime('d M Y H:i')
-                    ->sortable(),
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\TextColumn::make('updated_at')
+                    ->label('Diubah')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('category')
+                    ->label('Kategori')
+                    ->options([
+                        'makanan' => 'Makanan',
+                        'minuman' => 'Minuman',
+                        'camilan' => 'Camilan',
+                    ]),
+                Tables\Filters\TernaryFilter::make('available')
+                    ->label('Tersedia')
+                    ->trueLabel('Ya')
+                    ->falseLabel('Tidak'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

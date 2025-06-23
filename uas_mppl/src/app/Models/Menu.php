@@ -2,14 +2,23 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Menu extends Model
 {
-    protected $fillable = ['name', 'description', 'price', 'category', 'available', 'image'];
+    use HasFactory;
 
-    public function orderItems(): HasMany
+    protected $fillable = [
+        'name',
+        'description',
+        'price',
+        'category',
+        'available',
+        'image',
+    ];
+
+    public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
     }

@@ -49,7 +49,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverClusters(in: app_path('Filament/Admin/Clusters'), for: 'App\\Filament\\Admin\\Clusters')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
             ->widgets([
-                // \Awcodes\Overlook\Widgets\OverlookWidget::class,
+                \Awcodes\Overlook\Widgets\OverlookWidget::class,
             ])
             ->navigationGroups([
                 NavigationGroup::make()

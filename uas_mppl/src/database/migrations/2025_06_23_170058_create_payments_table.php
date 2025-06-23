@@ -9,12 +9,12 @@ return new class extends Migration {
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('order_id')->constrained()->onDelete('cascade');
-            $table->enum('method', ['cash', 'qris', 'debit']);
-            $table->integer('amount');
-            $table->enum('status', ['paid', 'pending', 'failed'])->default('pending');
+            $table->foreignId('order_id')->constrained('orders')->onDelete('cascade');
+            $table->enum('method', ['tunai', 'kartu kredit', 'qris']);
+            $table->decimal('amount', 10, 2);
+            $table->enum('status', ['belum bayar', 'lunas', 'gagal']);
             $table->dateTime('paid_at')->nullable();
-            $table->string('proof_of_payment')->nullable(); // Optional field for payment proof image
+            $table->string('proof_of_payment')->nullable();
             $table->timestamps();
         });
     }
