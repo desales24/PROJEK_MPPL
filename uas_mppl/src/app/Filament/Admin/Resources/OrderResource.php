@@ -41,6 +41,7 @@ class OrderResource extends Resource
                         Forms\Components\Select::make('customer_id')
                             ->relationship('customer', 'name')
                             ->label('Pelanggan')
+                            ->searchable()
                             ->required(),
 
                         Forms\Components\Select::make('status')
