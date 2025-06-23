@@ -18,8 +18,22 @@ class OrderResource extends Resource
     protected static ?string $modelLabel = 'Pesanan';
     protected static ?string $navigationLabel = 'Pesanan';
 
+    private static function calculateTotal(array $items): float
+    {
+        $total = 0;
+        foreach ($items as $item) {
+            $menu = Menu::find($item['menu_id'] ?? null);
+            if ($menu) {
+                $total += $menu->price * ($item['quantity'] ?? 0);
+            }
+        }
+        return $total;
+    }
+
     public static function form(Form $form): Form
     {
+        $menuOptions = Menu::pluck('name', 'id');
+
         return $form
             ->schema([
                 Forms\Components\Section::make('Informasi Pesanan')
@@ -51,7 +65,7 @@ class OrderResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('menu_id')
                                     ->label('Menu')
-                                    ->options(Menu::pluck('name', 'id'))
+                                    ->options($menuOptions)
                                     ->required()
                                     ->columnSpan(2),
 
@@ -66,28 +80,12 @@ class OrderResource extends Resource
                             ->columns(3)
                             ->defaultItems(1)
                             ->addActionLabel('Tambah Item')
-                            ->deleteAction(
-                                fn (Forms\Components\Actions\Action $action) => $action->requiresConfirmation(),
-                            )
+                            ->deleteAction(fn (Forms\Components\Actions\Action $action) => $action->requiresConfirmation())
                             ->afterStateUpdated(function (callable $set, $state) {
-                                $total = 0;
-                                foreach ($state as $item) {
-                                    $menu = Menu::find($item['menu_id'] ?? null);
-                                    if ($menu) {
-                                        $total += $menu->price * ($item['quantity'] ?? 0);
-                                    }
-                                }
-                                $set('total', $total);
+                                $set('total', self::calculateTotal($state));
                             })
                             ->afterStateHydrated(function ($state, callable $set) {
-                                $total = 0;
-                                foreach ($state as $item) {
-                                    $menu = Menu::find($item['menu_id'] ?? null);
-                                    if ($menu) {
-                                        $total += $menu->price * ($item['quantity'] ?? 0);
-                                    }
-                                }
-                                $set('total', $total);
+                                $set('total', self::calculateTotal($state));
                             }),
                     ]),
 
@@ -95,28 +93,14 @@ class OrderResource extends Resource
                     ->schema([
                         Forms\Components\Placeholder::make('total_display')
                             ->label('Total Pembayaran')
-                            ->content(function (callable $get) {
-                                $total = 0;
-                                foreach ($get('items') ?? [] as $item) {
-                                    $menu = Menu::find($item['menu_id'] ?? null);
-                                    if ($menu) {
-                                        $total += $menu->price * ($item['quantity'] ?? 0);
-                                    }
-                                }
-                                return 'Rp ' . number_format($total, 2);
-                            }),
+                            ->content(fn (callable $get) =>
+                                'Rp ' . number_format(self::calculateTotal($get('items') ?? []), 2)
+                            ),
 
                         Forms\Components\Hidden::make('total')
-                            ->dehydrateStateUsing(function (callable $get) {
-                                $total = 0;
-                                foreach ($get('items') ?? [] as $item) {
-                                    $menu = Menu::find($item['menu_id'] ?? null);
-                                    if ($menu) {
-                                        $total += $menu->price * ($item['quantity'] ?? 0);
-                                    }
-                                }
-                                return $total;
-                            }),
+                            ->dehydrateStateUsing(fn (callable $get) =>
+                                self::calculateTotal($get('items') ?? [])
+                            ),
                     ]),
             ]);
     }
@@ -125,21 +109,23 @@ class OrderResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->label('ID')->sortable(),
+                Tables\Columns\TextColumn::make('id')
+                    ->label('ID')
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('customer.name')
                     ->label('Pelanggan')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('status')
-                    ->badge()
-                    ->color(fn (string $state): string => match ($state) {
-                        'pending' => 'warning',
-                        'diproses' => 'info',
-                        'selesai' => 'success',
-                        'dibatalkan' => 'danger',
-                        default => 'gray',
-                    }),
+                Tables\Columns\SelectColumn::make('status')
+                    ->label('Status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'diproses' => 'Diproses',
+                        'selesai' => 'Selesai',
+                        'dibatalkan' => 'Dibatalkan',
+                    ])
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('total')
                     ->label('Total')
