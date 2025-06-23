@@ -90,6 +90,7 @@ class UserResource extends Resource
                             ->relationship('roles', 'name')
                             ->label('Roles'),
                     ])
+                    // ->default('Customer')
                     ->columns(1),
 
             ]);
