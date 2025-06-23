@@ -1,34 +1,39 @@
 <?php
 
-// app/Filament/Admin/Widgets/CustomerChart.php
 namespace App\Filament\Admin\Widgets;
 
-use App\Models\User as Customer;
+use App\Models\User;
 use Filament\Widgets\ChartWidget;
+use Illuminate\Support\Carbon;
 
 class CustomerChart extends ChartWidget
 {
-    protected static ?string $heading = 'Pertumbuhan Customer';
+    protected static ?string $heading = 'Customer Baru 7 Hari Terakhir';
 
     protected function getData(): array
     {
-        $customers = Customer::where('created_at', '>=', now()->subMonths(6))
-            ->selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, COUNT(*) as count')
-            ->groupBy('year', 'month')
-            ->orderBy('year')
-            ->orderBy('month')
-            ->get();
+        $dates = collect(range(0, 6))->map(fn ($i) => now()->subDays(6 - $i)->format('Y-m-d'));
 
-        $labels = $customers->map(function ($item) {
-            return date('M Y', mktime(0, 0, 0, $item->month, 1, $item->year));
-        });
+        $customers = User::whereDate('created_at', '>=', now()->subDays(6))
+            ->get()
+            ->groupBy(fn ($item) => $item->created_at->format('Y-m-d'));
+
+        $labels = [];
+        $values = [];
+
+        foreach ($dates as $date) {
+            $labels[] = Carbon::parse($date)->translatedFormat('d M');
+            $values[] = ($customers[$date] ?? collect())->count();
+        }
 
         return [
             'datasets' => [
                 [
-                    'label' => 'Jumlah Customer',
-                    'data' => $customers->pluck('count'),
-                    'backgroundColor' => '#10b981',
+                    'label' => 'Customer Baru',
+                    'data' => $values,
+                    'backgroundColor' => '#60a5fa',
+                    'borderColor' => '#2563eb',
+                    'fill' => true,
                 ],
             ],
             'labels' => $labels,
@@ -38,5 +43,15 @@ class CustomerChart extends ChartWidget
     protected function getType(): string
     {
         return 'bar';
+    }
+
+    protected function getHeight(): string|int
+    {
+        return 300;
+    }
+
+    public function getColumnSpan(): int|string|array
+    {
+        return 1;
     }
 }
